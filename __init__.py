@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 '''Finds unicode emojis.
 
 Synopsis: <trigger> [query]'''
