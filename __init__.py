@@ -31,9 +31,7 @@ class WorkerThread(Thread):
             ICON_CACHE_PATH.mkdir()
 
         # Build the index icon cache
-        uni_outputs = json.loads(
-            subprocess.check_output(BASE_COMMAND + ['-format=%(emoji)'], input='', encoding='utf-8')
-        )
+        uni_outputs = json.loads(subprocess.check_output(BASE_COMMAND + ['-format=%(emoji)'], input=''))
         required_emojis = {ICON_CACHE_PATH / f'{output["emoji"]}.png' for output in uni_outputs}
         cached_emojis = set(ICON_CACHE_PATH.iterdir())
 
