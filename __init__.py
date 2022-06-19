@@ -31,14 +31,18 @@ class WorkerThread(Thread):
             ICON_CACHE_PATH.mkdir()
 
         # Build the index icon cache
-        res = json.loads(subprocess.check_output(BASE_COMMAND + ['-format=%(emoji)'], input='', encoding='utf-8'))
-        for item in res:
-            emoji = item['emoji']
-            icon_path = ICON_CACHE_PATH / f'{emoji}.png'
-            if not icon_path.exists():
-                subprocess.call(
-                    ['convert', '-pointsize', '64', '-background', 'transparent', f'pango:{emoji}', icon_path]
-                )
+        uni_outputs = json.loads(
+            subprocess.check_output(BASE_COMMAND + ['-format=%(emoji)'], input='', encoding='utf-8')
+        )
+        required_emojis = {ICON_CACHE_PATH / f'{output["emoji"]}.png' for output in uni_outputs}
+        cached_emojis = set(ICON_CACHE_PATH.iterdir())
+
+        for icon_path in cached_emojis - required_emojis:
+            icon_path.unlink()
+        for icon_path in required_emojis - cached_emojis:
+            subprocess.call(
+                ['convert', '-pointsize', '64', '-background', 'transparent', f'pango:{icon_path.stem}', icon_path]
+            )
             if self.stop:
                 return
 
