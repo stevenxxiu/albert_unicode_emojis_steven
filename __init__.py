@@ -37,10 +37,13 @@ class WorkerThread(Thread):
 
         for icon_path in cached_emojis - required_emojis:
             icon_path.unlink()
-        for icon_path in required_emojis - cached_emojis:
+        for i, icon_path in enumerate(required_emojis - cached_emojis):
+            # `convert` is buggy for files with `*` in their encodings. This becomes a glob. We rename it ourselves.
+            tmp_path = ICON_CACHE_PATH / f'icon_{i}.png'
             subprocess.call(
-                ['convert', '-pointsize', '64', '-background', 'transparent', f'pango:{icon_path.stem}', icon_path]
+                ['convert', '-pointsize', '64', '-background', 'transparent', f'pango:{icon_path.stem}', tmp_path]
             )
+            tmp_path.rename(icon_path)
             if self.stop:
                 return
 
