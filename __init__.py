@@ -2,8 +2,10 @@
 
 Synopsis: <trigger> [query]'''
 import json
+import os
 import subprocess
 import threading
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from threading import Thread
 
@@ -19,6 +21,12 @@ __exec_deps__ = ['convert', 'uni']
 BASE_COMMAND = ['uni', 'emoji', '-tone=none,light', '-gender=all', '-as=json']
 ICON_CACHE_PATH = Path(cacheLocation()) / __name__
 thread: threading.Thread | None = None
+
+
+def character_to_image(char, tmp_path, icon_path):
+    # `convert` is buggy for files with `*` in their encodings. This becomes a glob. We rename it ourselves.
+    subprocess.call(['convert', '-pointsize', '64', '-background', 'transparent', f'pango:{char}', tmp_path])
+    tmp_path.rename(icon_path)
 
 
 class WorkerThread(Thread):
@@ -37,15 +45,12 @@ class WorkerThread(Thread):
 
         for icon_path in cached_emojis - required_emojis:
             icon_path.unlink()
-        for i, icon_path in enumerate(required_emojis - cached_emojis):
-            # `convert` is buggy for files with `*` in their encodings. This becomes a glob. We rename it ourselves.
-            tmp_path = ICON_CACHE_PATH / f'icon_{i}.png'
-            subprocess.call(
-                ['convert', '-pointsize', '64', '-background', 'transparent', f'pango:{icon_path.stem}', tmp_path]
-            )
-            tmp_path.rename(icon_path)
-            if self.stop:
-                return
+        with ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
+            for i, icon_path in enumerate(required_emojis - cached_emojis):
+                tmp_path = ICON_CACHE_PATH / f'icon_{i}.png'
+                executor.submit(character_to_image, icon_path.stem, tmp_path, icon_path)
+                if self.stop:
+                    return
 
 
 def initialize():
