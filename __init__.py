@@ -85,7 +85,6 @@ def handleQuery(query):
     if not query.isTriggered or not query.string.strip():
         return None
 
-    query.disableSort()
     entries = find_unicode(query.string.strip())
     entries_clips = [
         {
@@ -101,7 +100,7 @@ def handleQuery(query):
     for entry, entry_clips in zip(entries, entries_clips):
         items.append(
             Item(
-                id=__title__,
+                id=f'{__title__}/{entry["emoji"]}',
                 icon=str(ICON_CACHE_PATH / f'{entry["emoji"]}.png'),
                 text=entry['name'],
                 subtext=entry['group'],
@@ -116,7 +115,7 @@ def handleQuery(query):
                 all_clips[key] += f'{entry["emoji"]}\n' if key == 'Copy Emoji' else f'{entry["emoji"]} {value}\n'
         items.append(
             Item(
-                id=__title__,
+                id=f'{__title__}/All',
                 icon=str(ICON_CACHE_PATH / '😀.png'),
                 text='All',
                 actions=[ClipAction(text=key, clipboardText=value) for key, value in all_clips.items()],
