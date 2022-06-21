@@ -87,21 +87,39 @@ def handleQuery(query):
 
     query.disableSort()
     entries = find_unicode(query.string.strip())
+    entries_clips = [
+        {
+            'Copy Emoji': entry['emoji'],
+            'Copy Keywords': entry['cldr_full'],
+            'Copy UTF-8 bytes': entry['emoji'].encode('utf-8').hex(' '),
+            'Copy All': json.dumps(entry, indent=4, sort_keys=True),
+        }
+        for entry in entries
+    ]
 
     items = []
-    for entry in entries:
+    for entry, entry_clips in zip(entries, entries_clips):
         items.append(
             Item(
                 id=__title__,
                 icon=str(ICON_CACHE_PATH / f'{entry["emoji"]}.png'),
                 text=entry['name'],
                 subtext=entry['group'],
-                actions=[
-                    ClipAction(text='Copy Emoji', clipboardText=entry['emoji']),
-                    ClipAction(text='Copy Keywords', clipboardText=entry['cldr_full']),
-                    ClipAction(text='Copy UTF-8 bytes', clipboardText=entry['emoji'].encode('utf-8').hex(' ')),
-                    ClipAction(text='Copy All', clipboardText=json.dumps(entry, indent=4, sort_keys=True)),
-                ],
+                actions=[ClipAction(text=key, clipboardText=value) for key, value in entry_clips.items()],
+            )
+        )
+
+    if entries:
+        all_clips = {key: '' for key in entries_clips[0]}
+        for entry, entry_clips in zip(entries, entries_clips):
+            for key, value in entry_clips.items():
+                all_clips[key] += f'{entry["emoji"]}\n' if key == 'Copy Emoji' else f'{entry["emoji"]} {value}\n'
+        items.append(
+            Item(
+                id=__title__,
+                icon=str(ICON_CACHE_PATH / '😀.png'),
+                text='All',
+                actions=[ClipAction(text=key, clipboardText=value) for key, value in all_clips.items()],
             )
         )
     return items
