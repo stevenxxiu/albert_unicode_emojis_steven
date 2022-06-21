@@ -99,7 +99,7 @@ def handleQuery(query):
                 actions=[
                     ClipAction(text='Copy Emoji', clipboardText=entry['emoji']),
                     ClipAction(text='Copy Keywords', clipboardText=entry['cldr_full']),
-                    ClipAction(text='Copy UTF-8 bytes', clipboardText=repr(entry['emoji'].encode('utf-8'))[1:]),
+                    ClipAction(text='Copy UTF-8 bytes', clipboardText=entry['emoji'].encode('utf-8').hex(' ')),
                     ClipAction(text='Copy All', clipboardText=json.dumps(entry, indent=4, sort_keys=True)),
                 ],
             )
