@@ -67,24 +67,29 @@ def finalize():
         thread.join()
 
 
-def handleQuery(query):
-    if not query.isTriggered or not query.string.strip():
-        return None
-
-    query.disableSort()
-    stripped = query.string.strip()
+def find_unicode(query_str):
     try:
         output = subprocess.check_output(
-            BASE_COMMAND + ['-format=all', stripped],
+            BASE_COMMAND + ['-format=all', query_str],
             stderr=subprocess.STDOUT,
             encoding='utf-8',
         )
     except subprocess.CalledProcessError as e:
         if e.returncode == 1 and e.output == 'uni: no matches\n':
-            return None
+            return []
         raise
+    return json.loads(output)
+
+
+def handleQuery(query):
+    if not query.isTriggered or not query.string.strip():
+        return None
+
+    query.disableSort()
+    entries = find_unicode(query.string.strip())
+
     items = []
-    for entry in json.loads(output):
+    for entry in entries:
         items.append(
             Item(
                 id=__title__,
