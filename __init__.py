@@ -1,6 +1,3 @@
-'''Finds unicode emojis.
-
-Synopsis: <trigger> [query]'''
 import json
 import os
 import subprocess
@@ -8,22 +5,28 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from threading import Thread
+from typing import List
 
-from albert import ClipAction, Item, cacheLocation  # pylint: disable=import-error
+from albert import Action, Item, Query, QueryHandler, cacheLocation, setClipboardText  # pylint: disable=import-error
 
 
-__title__ = 'Unicode Emojis User'
-__version__ = '0.0.1'
-__triggers__ = ':'
-__authors__ = ['Steven Xu']
-__exec_deps__ = ['convert', 'uni']
+md_iid = '0.5'
+md_version = '1.0'
+md_name = 'Unicode Emojis User'
+md_description = 'Finds unicode emojis.'
+md_url = 'https://github.com/stevenxxiu/albert_unicode_emojis_user'
+md_maintainers = '@stevenxxiu'
+md_bin_dependencies = ['convert', 'uni']
 
 BASE_COMMAND = ['uni', 'emoji', '-tone=none,light', '-gender=all', '-as=json']
 ICON_CACHE_PATH = Path(cacheLocation()) / __name__
 thread: threading.Thread | None = None
 
+# Can crash if this is too large
+MAX_DISPLAYED = 10
 
-def character_to_image(char, tmp_path, icon_path):
+
+def character_to_image(char: str, tmp_path: Path, icon_path: Path) -> None:
     # `convert` is buggy for files with `*` in their encodings. This becomes a glob. We rename it ourselves.
     subprocess.call(['convert', '-pointsize', '64', '-background', 'transparent', f'pango:{char}', tmp_path])
     tmp_path.rename(icon_path)
@@ -53,21 +56,7 @@ class WorkerThread(Thread):
                     return
 
 
-def initialize():
-    # Build the index and icon cache
-    global thread  # pylint: disable=global-statement
-    thread = WorkerThread()
-    thread.start()
-
-
-def finalize():
-    global thread  # pylint: disable=global-variable-not-assigned
-    if thread is not None:
-        thread.stop = True
-        thread.join()
-
-
-def find_unicode(query_str):
+def find_unicode(query_str: str) -> List:
     try:
         output = subprocess.check_output(
             BASE_COMMAND + ['-format=all', query_str],
@@ -81,44 +70,84 @@ def find_unicode(query_str):
     return json.loads(output)
 
 
-def handleQuery(query):
-    if not query.isTriggered or not query.string.strip():
-        return None
+class Plugin(QueryHandler):
+    @staticmethod
+    def id() -> str:
+        return __name__
 
-    entries = find_unicode(query.string.strip())
-    entries_clips = [
-        {
-            'Copy Emoji': entry['emoji'],
-            'Copy Keywords': entry['cldr_full'],
-            'Copy UTF-8 bytes': entry['emoji'].encode('utf-8').hex(' '),
-            'Copy All': json.dumps(entry, indent=4, sort_keys=True),
-        }
-        for entry in entries
-    ]
+    @staticmethod
+    def name() -> str:
+        return md_name
 
-    items = []
-    for entry, entry_clips in zip(entries, entries_clips):
-        items.append(
-            Item(
-                id=f'{__title__}/{entry["emoji"]}',
-                icon=str(ICON_CACHE_PATH / f'{entry["emoji"]}.png'),
-                text=entry['name'],
-                subtext=entry['group'],
-                actions=[ClipAction(text=key, clipboardText=value) for key, value in entry_clips.items()],
-            )
-        )
+    @staticmethod
+    def description() -> str:
+        return md_description
 
-    if entries:
-        all_clips = {key: '' for key in entries_clips[0]}
+    @staticmethod
+    def initialize() -> None:
+        global thread  # pylint: disable=global-statement
+        thread = WorkerThread()
+        thread.start()
+
+    @staticmethod
+    def finalize() -> None:
+        global thread  # pylint: disable=global-statement
+        if thread is not None:
+            thread.stop = True
+            thread.join()
+
+    @staticmethod
+    def defaultTrigger() -> str:
+        return ':'
+
+    @staticmethod
+    def synopsis() -> str:
+        return 'query'
+
+    @staticmethod
+    def handleQuery(query: Query) -> None:
+        query_str = query.string.strip()
+        if not query_str:
+            return
+
+        entries = find_unicode(query_str)[:MAX_DISPLAYED]
+        entries_clips = [
+            {
+                'Copy Emoji': entry['emoji'],
+                'Copy Keywords': entry['cldr_full'],
+                'Copy UTF-8 bytes': entry['emoji'].encode('utf-8').hex(' '),
+                'Copy All': json.dumps(entry, indent=4, sort_keys=True),
+            }
+            for entry in entries
+        ]
+
         for entry, entry_clips in zip(entries, entries_clips):
-            for key, value in entry_clips.items():
-                all_clips[key] += f'{entry["emoji"]}\n' if key == 'Copy Emoji' else f'{entry["emoji"]} {value}\n'
-        items.append(
-            Item(
-                id=f'{__title__}/All',
-                icon=str(ICON_CACHE_PATH / '😀.png'),
-                text='All',
-                actions=[ClipAction(text=key, clipboardText=value) for key, value in all_clips.items()],
+            query.add(
+                Item(
+                    id=f'{md_name}/{entry["emoji"]}',
+                    text=entry['name'],
+                    subtext=entry['group'],
+                    icon=[str(ICON_CACHE_PATH / f'{entry["emoji"]}.png')],
+                    actions=[
+                        Action(f'{md_name}/{entry["emoji"]}/{key}', key, lambda value_=value: setClipboardText(value_))
+                        for key, value in entry_clips.items()
+                    ],
+                )
             )
-        )
-    return items
+
+        if entries:
+            all_clips = {key: '' for key in entries_clips[0]}
+            for entry, entry_clips in zip(entries, entries_clips):
+                for key, value in entry_clips.items():
+                    all_clips[key] += f'{entry["emoji"]}\n' if key == 'Copy Emoji' else f'{entry["emoji"]} {value}\n'
+            query.add(
+                Item(
+                    id=f'{md_name}/All',
+                    text='All',
+                    icon=[str(ICON_CACHE_PATH / '😀.png')],
+                    actions=[
+                        Action(f'{md_name}/all/{key}', key, lambda value_=value: setClipboardText(value_))
+                        for key, value in all_clips.items()
+                    ],
+                )
+            )
