@@ -12,9 +12,9 @@ from albert import Action, Item, Query, QueryHandler, cacheLocation, setClipboar
 
 md_iid = '0.5'
 md_version = '1.0'
-md_name = 'Unicode Emojis User'
+md_name = 'Unicode Emojis Steven'
 md_description = 'Finds unicode emojis.'
-md_url = 'https://github.com/stevenxxiu/albert_unicode_emojis_user'
+md_url = 'https://github.com/stevenxxiu/albert_unicode_emojis_steven'
 md_maintainers = '@stevenxxiu'
 md_bin_dependencies = ['convert', 'uni']
 
