@@ -71,41 +71,33 @@ def find_unicode(query_str: str) -> List:
 
 
 class Plugin(QueryHandler):
-    @staticmethod
-    def id() -> str:
+    def id(self) -> str:
         return __name__
 
-    @staticmethod
-    def name() -> str:
+    def name(self) -> str:
         return md_name
 
-    @staticmethod
-    def description() -> str:
+    def description(self) -> str:
         return md_description
 
-    @staticmethod
-    def initialize() -> None:
+    def initialize(self) -> None:
         global thread  # pylint: disable=global-statement
         thread = WorkerThread()
         thread.start()
 
-    @staticmethod
-    def finalize() -> None:
+    def finalize(self) -> None:
         global thread  # pylint: disable=global-statement
         if thread is not None:
             thread.stop = True
             thread.join()
 
-    @staticmethod
-    def defaultTrigger() -> str:
+    def defaultTrigger(self) -> str:
         return ':'
 
-    @staticmethod
-    def synopsis() -> str:
+    def synopsis(self) -> str:
         return 'query'
 
-    @staticmethod
-    def handleQuery(query: Query) -> None:
+    def handleQuery(self, query: Query) -> None:
         query_str = query.string.strip()
         if not query_str:
             return
