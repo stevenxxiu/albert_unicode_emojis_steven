@@ -1,8 +1,8 @@
 # Unicode Extension
-# Install
+## Install
 To install, copy or symlink this directory to `~/.local/share/albert/org.albert.extension.python/modules/unicode/`.
 
-# Development Setup
+## Development Setup
 To setup the project for development, run:
 
     $ cd unicode/
