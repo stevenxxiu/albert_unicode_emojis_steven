@@ -21,7 +21,6 @@ md_bin_dependencies = ['convert', 'uni']
 TRIGGER = ':'
 BASE_COMMAND = ['uni', 'emoji', '-tone=none,light', '-gender=all', '-as=json']
 ICON_CACHE_PATH = Path(cacheLocation()) / __name__
-thread: threading.Thread | None = None
 
 # Can crash if this is too large
 MAX_DISPLAYED = 10
@@ -72,6 +71,10 @@ def find_unicode(query_str: str) -> List:
 
 
 class Plugin(QueryHandler):
+    def __init__(self):
+        super().__init__()
+        self.thread: threading.Thread | None = None
+
     def id(self) -> str:
         return __name__
 
@@ -82,15 +85,13 @@ class Plugin(QueryHandler):
         return md_description
 
     def initialize(self) -> None:
-        global thread  # pylint: disable=global-statement
-        thread = WorkerThread()
-        thread.start()
+        self.thread = WorkerThread()
+        self.thread.start()
 
     def finalize(self) -> None:
-        global thread  # pylint: disable=global-statement
-        if thread is not None:
-            thread.stop = True
-            thread.join()
+        if self.thread is not None:
+            self.thread.stop = True
+            self.thread.join()
 
     def defaultTrigger(self) -> str:
         return TRIGGER
