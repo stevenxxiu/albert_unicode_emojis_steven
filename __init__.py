@@ -5,7 +5,6 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from threading import Thread
-from typing import List
 
 from albert import Action, Item, Query, QueryHandler, cacheLocation, setClipboardText  # pylint: disable=import-error
 
@@ -56,7 +55,7 @@ class WorkerThread(Thread):
                     return
 
 
-def find_unicode(query_str: str) -> List:
+def find_unicode(query_str: str) -> list:
     try:
         output = subprocess.check_output(
             BASE_COMMAND + ['-format=all', query_str],
