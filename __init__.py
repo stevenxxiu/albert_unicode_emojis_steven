@@ -21,9 +21,6 @@ TRIGGER = ':'
 BASE_COMMAND = ['uni', 'emoji', '-tone=none,light', '-gender=all', '-as=json']
 ICON_CACHE_PATH = Path(cacheLocation()) / __name__
 
-# Can crash if this is too large
-MAX_DISPLAYED = 10
-
 
 def character_to_image(char: str, tmp_path: Path, icon_path: Path) -> None:
     # `convert` is buggy for files with `*` in their encodings. This becomes a glob. We rename it ourselves.
@@ -103,7 +100,7 @@ class Plugin(QueryHandler):
         if not query_str:
             return
 
-        entries = find_unicode(query_str)[:MAX_DISPLAYED]
+        entries = find_unicode(query_str)
         entries_clips = [
             {
                 'Copy Emoji': entry['emoji'],
