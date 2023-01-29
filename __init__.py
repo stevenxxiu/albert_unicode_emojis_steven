@@ -17,7 +17,6 @@ md_url = 'https://github.com/stevenxxiu/albert_unicode_emojis_steven'
 md_maintainers = '@stevenxxiu'
 md_bin_dependencies = ['convert', 'uni']
 
-TRIGGER = ':'
 BASE_COMMAND = ['uni', 'emoji', '-tone=none,light', '-gender=all', '-as=json']
 ICON_CACHE_PATH = Path(cacheLocation()) / __name__
 
@@ -90,7 +89,7 @@ class Plugin(QueryHandler):
             self.thread.join()
 
     def defaultTrigger(self) -> str:
-        return TRIGGER
+        return ':'
 
     def synopsis(self) -> str:
         return 'query'
