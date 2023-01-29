@@ -29,7 +29,7 @@ def character_to_image(char: str, tmp_path: Path, icon_path: Path) -> None:
 
 
 class WorkerThread(Thread):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.stop = False
 
@@ -67,7 +67,7 @@ def find_unicode(query_str: str) -> list:
 
 
 class Plugin(QueryHandler):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.thread: threading.Thread | None = None
 
