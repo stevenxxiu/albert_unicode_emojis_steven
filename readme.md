@@ -1,6 +1,11 @@
 # Albert Launcher Unicode Emojis Extension
 Finds Unicode emojis.
 
+Dependencies:
+
+- [ImageMagick](https://imagemagick.org/index.php)
+- [uni](https://github.com/arp242/uni)
+
 ## Install
 To install, copy or symlink this directory to `~/.local/share/albert/org.albert.extension.python/modules/unicode_emojis_steven/`.
 
