@@ -7,7 +7,7 @@ Dependencies:
 - [uni](https://github.com/arp242/uni)
 
 ## Install
-To install, copy or symlink this directory to `~/.local/share/albert/org.albert.extension.python/modules/unicode_emojis_steven/`.
+To install, copy or symlink this directory to `~/.local/share/albert/python/plugins/unicode_emojis_steven/`.
 
 ## Development Setup
 To setup the project for development, run:
