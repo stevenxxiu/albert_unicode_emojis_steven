@@ -1,12 +1,11 @@
 import json
 import os
 import subprocess
-import threading
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from threading import Thread
 
-from albert import (  # pylint: disable=import-error
+from albert import (
     Action,
     PluginInstance,
     StandardItem,
@@ -14,13 +13,13 @@ from albert import (  # pylint: disable=import-error
     setClipboardText,
 )
 
-
-md_iid = '2.3'
-md_version = '1.3'
+md_iid = '3.0'
+md_version = '1.4'
 md_name = 'Unicode Emojis Steven'
 md_description = 'Finds unicode emojis'
+md_license = 'MIT'
 md_url = 'https://github.com/stevenxxiu/albert_unicode_emojis_steven'
-md_maintainers = '@stevenxxiu'
+md_authors = ['@stevenxxiu']
 md_bin_dependencies = ['convert', 'uni']
 
 BASE_COMMAND = ['uni', 'emoji', '-tone=none,light', '-gender=all', '-as=json']
@@ -41,8 +40,8 @@ class WorkerThread(Thread):
     def run(self):
         # Build the index icon cache
         uni_outputs = json.loads(subprocess.check_output(BASE_COMMAND + ['-format=%(emoji)'], input=''))
-        required_emojis = {self.icon_cache_path / f'{output["emoji"]}.png' for output in uni_outputs}
-        cached_emojis = set(self.icon_cache_path.iterdir())
+        required_emojis = {self.icon_cache_path() / f'{output["emoji"]}.png' for output in uni_outputs}
+        cached_emojis = set(self.icon_cache_path().iterdir())
 
         for icon_path in cached_emojis - required_emojis:
             icon_path.unlink()
@@ -70,10 +69,8 @@ def find_unicode(query_str: str) -> list:
 
 class Plugin(PluginInstance, TriggerQueryHandler):
     def __init__(self):
-        TriggerQueryHandler.__init__(
-            self, id=__name__, name=md_name, description=md_description, synopsis='query', defaultTrigger=':'
-        )
         PluginInstance.__init__(self)
+        TriggerQueryHandler.__init__(self)
         self.thread = WorkerThread(self.cacheLocation)
         self.thread.start()
 
@@ -81,6 +78,12 @@ class Plugin(PluginInstance, TriggerQueryHandler):
         if self.thread is not None:
             self.thread.stop = True
             self.thread.join()
+
+    def synopsis(self, _query: str) -> str:
+        return 'query'
+
+    def defaultTrigger(self):
+        return ':'
 
     def handleTriggerQuery(self, query) -> None:
         query_str = query.string.strip()
@@ -99,7 +102,7 @@ class Plugin(PluginInstance, TriggerQueryHandler):
         ]
 
         for entry, entry_clips in zip(entries, entries_clips):
-            icon_path = self.cacheLocation / f'{entry["emoji"]}.png'
+            icon_path = self.cacheLocation() / f'{entry["emoji"]}.png'
             query.add(
                 StandardItem(
                     id=f'{md_name}/{entry["emoji"]}',
@@ -122,7 +125,7 @@ class Plugin(PluginInstance, TriggerQueryHandler):
                 StandardItem(
                     id=f'{md_name}/All',
                     text='All',
-                    iconUrls=[f'file:{self.cacheLocation / "😀.png"}'],
+                    iconUrls=[f'file:{self.cacheLocation() / "😀.png"}'],
                     actions=[
                         Action(f'{md_name}/all/{key}', key, lambda value_=value: setClipboardText(value_))
                         for key, value in all_clips.items()
