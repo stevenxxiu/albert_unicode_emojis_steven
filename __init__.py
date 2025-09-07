@@ -4,14 +4,18 @@ import subprocess
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from threading import Thread
+from typing import Callable, TypedDict, override
 
+from albert import setClipboardText  # pyright: ignore[reportUnknownVariableType]
 from albert import (
     Action,
     PluginInstance,
+    Query,
     StandardItem,
     TriggerQueryHandler,
-    setClipboardText,
 )
+
+setClipboardText: Callable[[str], None]
 
 md_iid = '3.0'
 md_version = '1.4'
@@ -27,33 +31,44 @@ BASE_COMMAND = ['uni', 'emoji', '-tone=none,light', '-gender=all', '-as=json']
 
 def character_to_image(char: str, tmp_path: Path, icon_path: Path) -> None:
     # `convert` is buggy for files with `*` in their encodings. This becomes a glob. We rename it ourselves.
-    subprocess.call(['convert', '-pointsize', '64', '-background', 'transparent', f'pango:{char}', tmp_path])
-    tmp_path.rename(icon_path)
+    _ = subprocess.call(['convert', '-pointsize', '64', '-background', 'transparent', f'pango:{char}', tmp_path])
+    _ = tmp_path.rename(icon_path)
+
+
+class UniEntry(TypedDict):
+    name: str
+    group: str
+    emoji: str
+    cldr_full: str
 
 
 class WorkerThread(Thread):
-    def __init__(self, icon_cache_path) -> None:
+    stop: bool
+    icon_cache_path: Path
+
+    def __init__(self, icon_cache_path: Path) -> None:
         super().__init__()
         self.stop = False
         self.icon_cache_path = icon_cache_path
 
-    def run(self):
+    @override
+    def run(self) -> None:
         # Build the index icon cache
-        uni_outputs = json.loads(subprocess.check_output(BASE_COMMAND + ['-format=%(emoji)'], input=''))
-        required_emojis = {self.icon_cache_path() / f'{output["emoji"]}.png' for output in uni_outputs}
-        cached_emojis = set(self.icon_cache_path().iterdir())
+        uni_outputs: list[UniEntry] = json.loads(subprocess.check_output(BASE_COMMAND + ['-format=%(emoji)'], input=''))  # pyright: ignore[reportAny]
+        required_emojis: set[Path] = {self.icon_cache_path / f'{output["emoji"]}.png' for output in uni_outputs}
+        cached_emojis = set(self.icon_cache_path.iterdir())
 
         for icon_path in cached_emojis - required_emojis:
             icon_path.unlink()
         with ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
             for i, icon_path in enumerate(required_emojis - cached_emojis):
                 tmp_path = self.icon_cache_path / f'icon_{i}.png'
-                executor.submit(character_to_image, icon_path.stem, tmp_path, icon_path)
+                _ = executor.submit(character_to_image, icon_path.stem, tmp_path, icon_path)
                 if self.stop:
                     return
 
 
-def find_unicode(query_str: str) -> list:
+def find_unicode(query_str: str) -> list[UniEntry]:
     try:
         output = subprocess.check_output(
             BASE_COMMAND + ['-format=all', query_str],
@@ -61,17 +76,19 @@ def find_unicode(query_str: str) -> list:
             encoding='utf-8',
         )
     except subprocess.CalledProcessError as e:
-        if e.returncode == 1 and e.output == 'uni: no matches\n':
+        if e.returncode == 1 and e.output == 'uni: no matches\n':  # pyright: ignore[reportAny]
             return []
         raise
-    return json.loads(output)
+    return json.loads(output)  # pyright: ignore[reportAny]
 
 
 class Plugin(PluginInstance, TriggerQueryHandler):
+    thread: WorkerThread | None
+
     def __init__(self):
         PluginInstance.__init__(self)
         TriggerQueryHandler.__init__(self)
-        self.thread = WorkerThread(self.cacheLocation)
+        self.thread = WorkerThread(self.cacheLocation())
         self.thread.start()
 
     def __del__(self) -> None:
@@ -79,13 +96,16 @@ class Plugin(PluginInstance, TriggerQueryHandler):
             self.thread.stop = True
             self.thread.join()
 
+    @override
     def synopsis(self, _query: str) -> str:
         return 'query'
 
+    @override
     def defaultTrigger(self):
         return ':'
 
-    def handleTriggerQuery(self, query) -> None:
+    @override
+    def handleTriggerQuery(self, query: Query) -> None:
         query_str = query.string.strip()
         if not query_str:
             return
@@ -101,18 +121,22 @@ class Plugin(PluginInstance, TriggerQueryHandler):
             for entry in entries
         ]
 
+        actions: list[Action]
+        copy_call: Callable[[str], None]
+
         for entry, entry_clips in zip(entries, entries_clips):
             icon_path = self.cacheLocation() / f'{entry["emoji"]}.png'
-            query.add(
+            actions = []
+            for key, value in entry_clips.items():
+                copy_call = lambda value_=value: setClipboardText(value_)  # noqa: E731
+                actions.append(Action(f'{md_name}/{entry["emoji"]}/{key}', key, copy_call))
+            query.add(  # pyright: ignore[reportUnknownMemberType]
                 StandardItem(
                     id=f'{md_name}/{entry["emoji"]}',
                     text=entry['name'],
                     subtext=entry['group'],
                     iconUrls=[f'file:{icon_path}'],
-                    actions=[
-                        Action(f'{md_name}/{entry["emoji"]}/{key}', key, lambda value_=value: setClipboardText(value_))
-                        for key, value in entry_clips.items()
-                    ],
+                    actions=actions,
                 )
             )
 
@@ -121,14 +145,15 @@ class Plugin(PluginInstance, TriggerQueryHandler):
             for entry, entry_clips in zip(entries, entries_clips):
                 for key, value in entry_clips.items():
                     all_clips[key] += f'{entry["emoji"]}\n' if key == 'Copy Emoji' else f'{entry["emoji"]} {value}\n'
-            query.add(
+            actions = []
+            for key, value in all_clips.items():
+                copy_call = lambda value_=value: setClipboardText(value_)  # noqa: E731
+                actions.append(Action(f'{md_name}/all/{key}', key, copy_call))
+            query.add(  # pyright: ignore[reportUnknownMemberType]
                 StandardItem(
                     id=f'{md_name}/All',
                     text='All',
                     iconUrls=[f'file:{self.cacheLocation() / "😀.png"}'],
-                    actions=[
-                        Action(f'{md_name}/all/{key}', key, lambda value_=value: setClipboardText(value_))
-                        for key, value in all_clips.items()
-                    ],
+                    actions=actions,
                 )
             )
