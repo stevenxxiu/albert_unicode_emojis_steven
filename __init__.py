@@ -9,6 +9,7 @@ from typing import Callable, TypedDict, override
 from albert import setClipboardText  # pyright: ignore[reportUnknownVariableType]
 from albert import (
     Action,
+    Item,
     PluginInstance,
     Query,
     StandardItem,
@@ -121,6 +122,7 @@ class Plugin(PluginInstance, TriggerQueryHandler):
             for entry in entries
         ]
 
+        items: list[Item] = []
         actions: list[Action]
         copy_call: Callable[[str], None]
 
@@ -130,15 +132,14 @@ class Plugin(PluginInstance, TriggerQueryHandler):
             for key, value in entry_clips.items():
                 copy_call = lambda value_=value: setClipboardText(value_)  # noqa: E731
                 actions.append(Action(f'{md_name}/{entry["emoji"]}/{key}', key, copy_call))
-            query.add(  # pyright: ignore[reportUnknownMemberType]
-                StandardItem(
-                    id=f'{md_name}/{entry["emoji"]}',
-                    text=entry['name'],
-                    subtext=entry['group'],
-                    iconUrls=[f'file:{icon_path}'],
-                    actions=actions,
-                )
+            item = StandardItem(
+                id=f'{md_name}/{entry["emoji"]}',
+                text=entry['name'],
+                subtext=entry['group'],
+                iconUrls=[f'file:{icon_path}'],
+                actions=actions,
             )
+            items.append(item)
 
         if entries:
             all_clips = {key: '' for key in entries_clips[0]}
@@ -149,11 +150,12 @@ class Plugin(PluginInstance, TriggerQueryHandler):
             for key, value in all_clips.items():
                 copy_call = lambda value_=value: setClipboardText(value_)  # noqa: E731
                 actions.append(Action(f'{md_name}/all/{key}', key, copy_call))
-            query.add(  # pyright: ignore[reportUnknownMemberType]
-                StandardItem(
-                    id=f'{md_name}/All',
-                    text='All',
-                    iconUrls=[f'file:{self.cacheLocation() / "😀.png"}'],
-                    actions=actions,
-                )
+            item = StandardItem(
+                id=f'{md_name}/All',
+                text='All',
+                iconUrls=[f'file:{self.cacheLocation() / "😀.png"}'],
+                actions=actions,
             )
+            items.append(item)
+
+        query.add(items)  # pyright: ignore[reportUnknownMemberType]
