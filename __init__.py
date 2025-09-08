@@ -133,7 +133,7 @@ class Plugin(PluginInstance, TriggerQueryHandler):
                 copy_call = lambda value_=value: setClipboardText(value_)  # noqa: E731
                 actions.append(Action(f'{md_name}/{entry["emoji"]}/{key}', key, copy_call))
             item = StandardItem(
-                id=f'{md_name}/{entry["emoji"]}',
+                id=self.id(),
                 text=entry['name'],
                 subtext=entry['group'],
                 iconUrls=[f'file:{icon_path}'],
@@ -151,7 +151,7 @@ class Plugin(PluginInstance, TriggerQueryHandler):
                 copy_call = lambda value_=value: setClipboardText(value_)  # noqa: E731
                 actions.append(Action(f'{md_name}/all/{key}', key, copy_call))
             item = StandardItem(
-                id=f'{md_name}/All',
+                id=self.id(),
                 text='All',
                 iconUrls=[f'file:{self.cacheLocation() / "😀.png"}'],
                 actions=actions,
