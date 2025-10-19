@@ -14,11 +14,12 @@ from albert import (
     Query,
     StandardItem,
     TriggerQueryHandler,
+    makeImageIcon,
 )
 
 setClipboardText: Callable[[str], None]
 
-md_iid = '3.0'
+md_iid = '4.0'
 md_version = '1.4'
 md_name = 'Unicode Emojis Steven'
 md_description = 'Finds unicode emojis'
@@ -136,7 +137,7 @@ class Plugin(PluginInstance, TriggerQueryHandler):
                 id=self.id(),
                 text=entry['name'],
                 subtext=entry['group'],
-                iconUrls=[f'file:{icon_path}'],
+                icon_factory=lambda icon_path_=icon_path: makeImageIcon(icon_path_),
                 actions=actions,
             )
             items.append(item)
@@ -153,7 +154,7 @@ class Plugin(PluginInstance, TriggerQueryHandler):
             item = StandardItem(
                 id=self.id(),
                 text='All',
-                iconUrls=[f'file:{self.cacheLocation() / "😀.png"}'],
+                icon_factory=lambda: makeImageIcon(self.cacheLocation() / '😀.png'),
                 actions=actions,
             )
             items.append(item)
