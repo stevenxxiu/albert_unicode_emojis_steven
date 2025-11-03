@@ -132,9 +132,9 @@ class Plugin(PluginInstance, TriggerQueryHandler):
             actions = []
             for key, value in entry_clips.items():
                 copy_call = lambda value_=value: setClipboardText(value_)  # noqa: E731
-                actions.append(Action(f'{md_name}/{entry["emoji"]}/{key}', key, copy_call))
+                actions.append(Action(key, key, copy_call))
             item = StandardItem(
-                id=self.id(),
+                id=entry['emoji'],
                 text=entry['name'],
                 subtext=entry['group'],
                 icon_factory=lambda icon_path_=icon_path: makeImageIcon(icon_path_),
@@ -150,9 +150,9 @@ class Plugin(PluginInstance, TriggerQueryHandler):
             actions = []
             for key, value in all_clips.items():
                 copy_call = lambda value_=value: setClipboardText(value_)  # noqa: E731
-                actions.append(Action(f'{md_name}/all/{key}', key, copy_call))
+                actions.append(Action(key, key, copy_call))
             item = StandardItem(
-                id=self.id(),
+                id='all',
                 text='All',
                 icon_factory=lambda: makeImageIcon(self.cacheLocation() / '😀.png'),
                 actions=actions,
