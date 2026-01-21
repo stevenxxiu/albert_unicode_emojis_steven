@@ -1,6 +1,7 @@
 import json
 import os
 import subprocess
+from collections.abc import Generator
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from threading import Thread
@@ -9,18 +10,18 @@ from typing import Callable, TypedDict, override
 from albert import setClipboardText  # pyright: ignore[reportUnknownVariableType]
 from albert import (
     Action,
+    GeneratorQueryHandler,
+    Icon,
     Item,
     PluginInstance,
-    Query,
+    QueryContext,
     StandardItem,
-    TriggerQueryHandler,
-    makeImageIcon,
 )
 
 setClipboardText: Callable[[str], None]
 
-md_iid = '4.0'
-md_version = '1.4'
+md_iid = '5.0'
+md_version = '1.5'
 md_name = 'Unicode Emojis Steven'
 md_description = 'Finds unicode emojis'
 md_license = 'MIT'
@@ -84,12 +85,12 @@ def find_unicode(query_str: str) -> list[UniEntry]:
     return json.loads(output)  # pyright: ignore[reportAny]
 
 
-class Plugin(PluginInstance, TriggerQueryHandler):
+class Plugin(PluginInstance, GeneratorQueryHandler):
     thread: WorkerThread | None
 
-    def __init__(self):
+    def __init__(self) -> None:
         PluginInstance.__init__(self)
-        TriggerQueryHandler.__init__(self)
+        GeneratorQueryHandler.__init__(self)
         self.thread = WorkerThread(self.cacheLocation())
         self.thread.start()
 
@@ -107,8 +108,8 @@ class Plugin(PluginInstance, TriggerQueryHandler):
         return ':'
 
     @override
-    def handleTriggerQuery(self, query: Query) -> None:
-        query_str = query.string.strip()
+    def items(self, ctx: QueryContext) -> Generator[list[Item]]:
+        query_str = ctx.query.strip()
         if not query_str:
             return
 
@@ -137,7 +138,7 @@ class Plugin(PluginInstance, TriggerQueryHandler):
                 id=entry['emoji'],
                 text=entry['name'],
                 subtext=entry['group'],
-                icon_factory=lambda icon_path_=icon_path: makeImageIcon(icon_path_),
+                icon_factory=lambda icon_path_=icon_path: Icon.image(icon_path_),
                 actions=actions,
             )
             items.append(item)
@@ -154,9 +155,9 @@ class Plugin(PluginInstance, TriggerQueryHandler):
             item = StandardItem(
                 id='all',
                 text='All',
-                icon_factory=lambda: makeImageIcon(self.cacheLocation() / '😀.png'),
+                icon_factory=lambda: Icon.image(self.cacheLocation() / '😀.png'),
                 actions=actions,
             )
             items.append(item)
 
-        query.add(items)  # pyright: ignore[reportUnknownMemberType]
+        yield items
