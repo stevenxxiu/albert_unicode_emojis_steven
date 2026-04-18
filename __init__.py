@@ -27,14 +27,14 @@ md_description = 'Finds unicode emojis'
 md_license = 'MIT'
 md_url = 'https://github.com/stevenxxiu/albert_unicode_emojis_steven'
 md_authors = ['@stevenxxiu']
-md_bin_dependencies = ['convert', 'uni']
+md_bin_dependencies = ['magick', 'uni']
 
 BASE_COMMAND = ['uni', 'emoji', '-tone=none,light', '-gender=all', '-as=json']
 
 
 def character_to_image(char: str, tmp_path: Path, icon_path: Path) -> None:
     # `convert` is buggy for files with `*` in their encodings. This becomes a glob. We rename it ourselves.
-    _ = subprocess.call(['convert', '-pointsize', '64', '-background', 'transparent', f'pango:{char}', tmp_path])
+    _ = subprocess.call(['magick', '-pointsize', '64', '-background', 'transparent', f'pango:{char}', tmp_path])
     _ = tmp_path.rename(icon_path)
 
 
