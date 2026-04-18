@@ -59,6 +59,7 @@ class WorkerThread(Thread):
         # Build the index icon cache
         uni_outputs: list[UniEntry] = json.loads(subprocess.check_output(BASE_COMMAND + ['-format=%(emoji)'], input=''))  # pyright: ignore[reportAny]
         required_emojis: set[Path] = {self.icon_cache_path / f'{output["emoji"]}.png' for output in uni_outputs}
+        self.icon_cache_path.mkdir(exist_ok=True)
         cached_emojis = set(self.icon_cache_path.iterdir())
 
         for icon_path in cached_emojis - required_emojis:
